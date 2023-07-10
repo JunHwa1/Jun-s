@@ -461,3 +461,4 @@ SELECT Country, COUNT(*) AS CustomerCount,
     (COUNT(*) / (SELECT COUNT(*) FROM Customers) * 100) AS Percentage
 FROM Customers
 GROUP BY Country; 
+
