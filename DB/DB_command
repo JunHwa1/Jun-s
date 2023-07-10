@@ -462,3 +462,4 @@ SELECT Country, COUNT(*) AS CustomerCount,
 FROM Customers
 GROUP BY Country; 
 
+
