@@ -821,3 +821,4 @@ CREATE TABLE Users (
 CREATE INDEX idx_UserName ON Users(UserName);
 
 INSERT INTO Users(UserName, Password) VALUES ("JunHwa", "1234");
+
