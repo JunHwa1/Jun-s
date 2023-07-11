@@ -239,7 +239,131 @@ SELECT *, (
     ) AS TotalQuantity
 FROM OrderDetails
 
+-- Q. 고객(Customers)의 국가(Country)별 고객수와 백분위 
+-- (국가별고객수 / 전체고객수 * 100)을 구하세요
+SELECT Country, NumCustomer, (NumCustomer * 100 / TotalCustomer) AS Percentage
+FROM (
+    SELECT Country, COUNT(*) AS NumCustomer, 
+            (SELECT COUNT(*) FROM Customers) AS TotalCustomer 
+    FROM Customers 
+    GROUP BY Customers.Country 
+);
+
+--Q. Tokyo에 위치한 공급자(Supplier)가 
+--생산한 상품(Products) 목록 조회
+SELECT *
+FROM Products 
+INNER JOIN Suppliers 
+ON Products.SupplierID=Suppliers.SupplierID 
+WHERE Suppliers.City="Tokyo";
+
+SELECT Products.*, Suppliers.SupplierName
+FROM Products 
+INNER JOIN Suppliers 
+ON Products.SupplierID=Suppliers.SupplierID 
+WHERE Suppliers.City="Tokyo";
+
+--Q. 주문이력이 있는 고객명(CustomerName)과 
+-- 주문일(OrderDate)를 조회해주세요
+SELECT Customers.CustomerName, Orders.OrderDate
+FROM Customers  
+INNER JOIN Orders 
+ON Customers.CustomerID=Orders.CustomerID;
+
+--Q. 분류(CategoryName)가 Seafood인 
+--상품명(ProductName) 조회
+SELECT Products.ProductName, Categories.CategoryName
+FROM Products 
+INNER JOIN Categories 
+ON Products.CategoryID=Categories.CategoryID 
+WHERE Categories.CategoryName="Seafood";
+
+-- Q. 공급자(Supplier)가 공급한 상품의 공급자 국가(Country), 
+--카테고리별로 상품건수와 평균가격 조회
+SELECT C.CategoryName, S.Country, 
+    COUNT(C.CategoryID) AS NumProduct, AVG(P.Price) AS AvgPrice
+FROM Products AS P  
+    INNER JOIN Suppliers AS S 
+    ON P.SupplierID=S.SupplierID 
+    INNER JOIN Categories AS C 
+    ON P.CategoryID=C.CategoryID 
+GROUP BY S.Country, C.CategoryID;
+
+-- Q. 주문별 주문자명(CustomerName), 직원명(LastName), 
+--배송자명(ShipperName), 주문상세갯수
+SELECT C.CustomerName, E.LastName, S.ShipperName,
+        OD.Quantity 
+FROM Orders AS O  
+    INNER JOIN Customers AS C  
+    ON O.CustomerID=C.CustomerID 
+    INNER JOIN Employees AS E  
+    ON O.EmployeeID=E.EmployeeID 
+    INNER JOIN Shippers AS S  
+    ON O.ShipperID=S.ShipperID 
+    INNER JOIN OrderDetails AS OD 
+    ON O.OrderID=OD.OrderID 
+GROUP BY O.OrderID;
+
+-- Q. 판매량(Quantity) 
+-- 상위 TOP 3 공급자(supplier) 목록 조회
+SELECT S.*, SUM(OD.Quantity) AS SumQuantity 
+FROM Products AS P 
+     INNER JOIN OrderDetails AS OD 
+     ON P.ProductID=OD.ProductID 
+     INNER JOIN Suppliers AS S 
+     ON P.SupplierID=S.SupplierID
+GROUP BY S.SupplierID 
+ORDER BY SumQuantity DESC
+LIMIT 3;
+
+-- Q. 상품분류(Category)별, 
+-- 고객지역별(City) 판매량 많은 순 정렬
+SELECT CA.CategoryName, C.City, SUM(OD.Quantity) AS SumQuantity
+FROM OrderDetails AS OD 
+    INNER JOIN Products AS P 
+    ON OD.ProductID=P.ProductID 
+    INNER JOIN Categories AS CA  
+    ON P.CategoryID=CA.CategoryID 
+    INNER JOIN Orders AS O 
+    ON OD.OrderID=O.OrderID 
+    INNER JOIN Customers AS C 
+    ON O.CustomerID=C.CustomerID 
+GROUP BY CA.CategoryID, C.City 
+ORDER BY SumQuantity DESC;
+
+--Q. 고객국가(Country)가 USA이고, 
+--상품별 판매량(Quantity)의 합이 많은순으로 정렬
+SELECT P.ProductName, SUM(OD.Quantity) AS SumQuantity
+FROM OrderDetails AS OD 
+    INNER JOIN Products AS P 
+    ON OD.ProductID=P.ProductID 
+    INNER JOIN Orders AS O 
+    ON OD.OrderID=O.OrderID 
+    INNER JOIN Customers AS C 
+    ON O.CustomerID=C.CustomerID 
+WHERE C.Country="USA"  
+GROUP BY P.ProductID
+ORDER BY SumQuantity DESC;
+
+ALTER TABLE Grades ADD CONSTRAINT fk_grade_student FOREIGN KEY(StudentID)
+        REFERENCES Students(StudentID);
 
 
+-- Q. Tokyo에 위치한 공급자(Supplier)가 생산한 상품 목록에 대한 VIEW 생성
+
+-- 내 풀이 실패
+CREATE VIEW Made_in_Tokyo (Products.*, Suppliers.City)
+AS
+SELECT Products.*, Suppliers.City
+FROM Products  
+WHERE Suppliers.City="Tokyo";
 
 
+-- Q. 분류(CategoryName)가 Seafood인 상품명(ProductName)에 대한 VIEW 생성
+
+-- 내 풀이 실패
+CREATE VIEW Product_view(Products.ProductName, Categories.CategoryName)
+AS 
+SELECT Products.ProductName, Categories.CategoryName
+FROM Products 
+WHERE Categories.CategoryName="Seafood";
