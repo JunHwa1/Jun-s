@@ -402,6 +402,15 @@ FROM Products
 WHERE ProductName LIKE "C%" AND Price > 20
 ORDER BY Price DESC;
 
+-- 서브 쿼리 쓴 강사님 풀이
+SELECT ProductName, Price
+FROM ( 
+    SELECT ProductName, Price
+    FROM Products
+    WHERE ProductName LIKE "C%"
+) 
+WHERE Price > 20
+ORDER BY Price DESC;
 
 -- Q. 상품(Products)의 카테고리아이디(CategoryID) 별로 상품가격의 합,
 --  가장 비싼 상품 가격, 가장 저렴한 상품 가격을 구하세요.
@@ -409,6 +418,11 @@ ORDER BY Price DESC;
 SELECT SUM(Price), MAX(Price), MIN(Price)
 FROM Products 
 GROUP BY CategoryID;
+
+SELECT SUM(Price) AS SumPrice, MAX(Price) AS MaxPrice, MIN(Price) AS MinPrice
+FROM Products 
+GROUP BY CategoryID;
+
 
 
 -- Q. 상품(Products)의 카테고리아이디(CategoryID) 별로 상품개수와 
@@ -440,12 +454,25 @@ FROM Products;
 -- 내 최종 풀이 
 SELECT CategoryID, COUNT(*) AS ProductCount,
     CASE
-        WHEN COUNT(*) >= 10 THEN "많음"
+        WHEN COUNT(*) > 10 THEN "많음"
         ELSE "적음"
     END AS "10개 기준"
 FROM Products 
 GROUP BY CategoryID
 ORDER BY ProductCount DESC;
+
+-- 서브 쿼리 이용한 풀이 
+SELECT CategoryID, NumProduct,
+CASE
+    WHEN NumProduct > 10 THEN "많음"
+    ELSE "적음"
+END AS 'Level'
+FROM (
+    SELECT CategoryID, COUNT(*) AS NumProduct
+    FROM Products 
+    GROUP BY CategoryID
+)
+ORDER BY NumProduct DESC;  
 
 
 -- Q. 고객(Customers)의 국가(Country)별 고객수와
@@ -456,9 +483,341 @@ SELECT Country, COUNT(*), COUNT(*)/COUNT(*) * 100
 FROM Customers
 GROUP BY Country;
 
-- 내 풀이 실패
+-- 내 풀이 실패
 SELECT Country, COUNT(*) AS CustomerCount, 
     (COUNT(*) / (SELECT COUNT(*) FROM Customers) * 100) AS Percentage
 FROM Customers
 GROUP BY Country; 
 
+-- 강사님 풀이 
+SELECT Country, NumCustomer, TotalCustomer, NumCustomer*100/TotalCustomer AS Percentile
+FROM (
+    SELECT Country, COUNT(*) AS NumCustomer, (SELECT COUNT(*) FROM Customers) AS TotalCustomer
+    FROM Customers
+    GROUP BY Country 
+);
+-- NumCustomer -> INT
+-- TotalCustomer -> INT
+
+
+-- 2023-07-11 
+
+-- cmd에서 실행함.
+
+--Students, Grades
+-- INNER JOIN
+SELECT *
+FROM Students
+INNER JOIN Grades 
+ON Students.StudentID = Grades.StudentID; 
+
+--성적이 없는 학생을 넣어봄.
+INSERT INTO Students(Name, Age, Address) VALUES ("JASON", 36, "서울");
+
+--LEFT JOIN
+SELECT *
+FROM Students
+LEFT JOIN Grades 
+ON Students.StudentID = Grades.StudentID; 
+
+--RIGHT JOIN
+SELECT *
+FROM Students
+RIGHT JOIN Grades 
+ON Students.StudentID = Grades.StudentID; 
+
+-- OUTER JOIN
+SELECT *
+FROM Students
+LEFT OUTER JOIN Grades 
+ON Students.StudentID = Grades.StudentID; 
+
+SELECT *
+FROM Students
+RIGHT OUTER JOIN Grades 
+ON Students.StudentID = Grades.StudentID; 
+-- MySQL 에선 FULL OUTER JOIN이 없어서 안 됨.
+
+-- 학생 테이블에 없는 값을 성적테이블에 넣음.
+INSERT INTO Grades(StudentID, Math, English, Science) VALUES (8, 86, 43, 72);
+
+--실습 
+-- https://www.w3schools.com/sql/trysql.asp?filename=trysql_asc 에서 함.
+-- Q. 주문이력이 있는 고객명(CustomerName)과 주문일(OrderDate)를 조회해주세요
+
+-- 1. 원하는 데이터가 어디에 있는지 확인
+-- Orders, Customers
+
+-- 2. 어떤 테이블을 기준으로 가져올지
+-- INNER JOIN -> 테이블 자유롭게, LEFT JOIN, RIGHT JOIN -> 가져올 데이터 기준으로
+
+-- 3. SQL 작성
+SELECT Customers.CustomerName, Orders.OrderDate  
+FROM Orders 
+INNER JOIN Customers 
+ON Orders.CustomerID=Customers.CustomerID; 
+
+-- UNIQUE?
+-- 안 됨.
+SELECT DISTINCT Customers.CustomerName, Orders.OrderDate, Orders.OrderDate
+FROM Orders 
+INNER JOIN Customers 
+ON Orders.CustomerID=Customers.CustomerID; 
+
+--UNIQUE
+SELECT Customers.CustomerID, Customers.CusotmerName, Orders.OrderDate
+FROM Orders
+INNER JOIN Customers
+ON Orders.CustomerID=Customers.CustomerID
+GROUP BY Customers.CustomerID;
+
+SELECT Customers.CustomerID, Customers.CustomerName, 
+                    Orders.OrderDate
+FROM Orders
+FULL OUTER JOIN Customers
+ON Orders.CustomerID=Customers.CustomerID
+GROUP BY Customers.CustomerID;
+
+-- 실습
+-- Q. Tokyo에 위치한 공급자(Supplier)가 생산한 상품(Products) 목록 조회
+
+SELECT Suppliers.City, Products.ProductName 
+FROM Suppliers 
+INNER JOIN Products
+ON Suppliers.SupplierID=Products.SupplierID
+WHERE Suppliers.City="Tokyo";
+
+-- 강사님 풀이
+-- Tokyo에 위치한 공급자 vs 공급자가 생산한 상품 목록 : 후자를 먼저 구하고 전자
+
+-- 1. 공급자가 생산한 상품 목록
+SELECT *
+FROM Products 
+LEFT JOIN Suppliers
+ON Products.SupplierID=Suppliers.SupplierID;
+
+-- 2. Tokyo 에 위치한 공급자 
+SELECT *
+FROM Products
+LEFT JOIN Suppliers 
+ON Products.SupplierID=Suppliers.SupplierID
+WHERE Suppliers.City="Tokyo";
+
+-- 상품 목록 조회
+SELECT Products.*, Suppliers.SupplierName
+FROM Products
+LEFT JOIN Suppliers 
+ON Products.SupplierID=Suppliers.SupplierID
+WHERE Suppliers.City="Tokyo";
+
+
+-- Q. 분류(CategoryName)가 Seafood인 상품명(ProductName) 조회
+
+SELECT Categories.CategoryName, Products.ProductName
+FROM Categories 
+INNER JOIN Products 
+ON Categories.CategoryID=Products.CategoryID
+WHERE Categories.CategoryName="Seafood";  
+
+-- 강사님 풀이 
+-- 여기선 column 명이 동일하지 않아서 테이블.column명 안 하고 column 명만 해도 되는거
+SELECT ProductName, CategoryName
+FROM Products
+INNER JOIN Categories
+ON Products.CategoryID = Categories.CategoryID
+WHERE CategoryName="Seafood";
+
+
+-- Q. 공급자(Supplier)가 공급한 상품의 공급자 국가(Country), 카테고리별로 상품건수와 평균가격 조회
+
+SELECT COUNT(*) AS NumProduct, AVG(Price)
+FROM Products  
+INNER JOIN Suppliers
+ON Products.SupplierID=Suppliers.SupplierID
+GROUP BY Suppliers.Country
+INNER JOIN Categories  
+ON Products.CategoryID=Categories.CategoryID
+GROUP BY Categories.CategoryID;
+
+-- 강사님 풀이 1
+-- Multi Table Join
+SELECT S.Country, C.CategoryName, COUNT(*) AS NumProduct, 
+                                    AVG(P.Price) AS AvgPrice
+FROM Products AS P
+INNER JOIN Suppliers AS S
+ON P.SupplierID = S.SupplierID
+INNER JOIN Categories AS C
+ON P.CategoryID = C.CategoryID
+GROUP BY S.Country, C.CategoryID;
+
+-- 강사님 풀이 2
+-- JOIN 방법 
+SELECT S.Country, C.CategoryName, COUNT(*) AS NumProduct, 
+                                    AVG(P.Price) AS AvgPrice
+FROM Products AS P, Suppliers AS S, Categories AS C
+WHERE P.SupplierID=S.SupplierID AND P.CategoryID=C.CategoryID
+GROUP BY S.Country, C.CategoryID;
+
+
+-- Q. 주문별 주문자명(CustomerName), 직원명(LastName), 배송자명(ShipperName), 주문상세갯수
+
+-- 내 풀이 
+-- Customers.CustomerName, Employees.LastName, Shippers.ShipperName, OrderDetails.Quantity
+SELECT Orders.OrderID, CustomerName, LastName, ShipperName, Quantity
+FROM Orders
+INNER JOIN Customers
+ON Orders.CustomerID=Customers.CustomerID
+INNER JOIN Employees
+ON Orders.EmployeeID=Employees.EmployeeID
+INNER JOIN Shippers
+ON Orders.ShipperID=Shippers.ShipperID
+INNER JOIN OrderDetails   
+ON Orders.OrderID=OrderDetails.OrderID
+GROUP BY Orders.OrderID;
+
+-- 강사님 풀이 1
+SELECT O.OrderID, C.CustomerName, E.LastName, S.ShipperName, COUNT(OD.OrderDetailID)
+FROM Orders as O
+INNER JOIN Customers AS C
+ON O.CustomerID=C.CustomerID
+INNER JOIN Employees as E
+ON O.EmployeeID=E.EmployeeID
+INNER JOIN Shippers AS S
+ON O.ShipperID=S.ShipperID
+RIGHT JOIN OrderDetails AS OD
+ON OD.OrderID=O.OrderID
+GROUP BY O.OrderID;
+
+-- 강사님 풀이 2
+-- subQuery
+SELECT OD.OrderDetailID, OI.OrderID, OI.CustomerName, OI.LastName, OI.ShipperName
+FROM OrderDetails AS OD
+LEFT JOIN (
+    SELECT O.OrderID, C.CustomerName, E.LastName, S.ShipperName
+    FROM Orders as O
+    INNER JOIN Customers AS C
+    ON O.CustomerID=C.CustomerID
+    INNER JOIN Employees as E
+    ON O.EmployeeID=E.EmployeeID
+    INNER JOIN Shippers AS S
+    ON O.ShipperID=S.ShipperID
+) AS OI -- OrderInfo
+ON OD.OrderID=OI.OrderID;
+
+
+
+-- Q. 판매량(Quantity) 상위 TOP 3 공급자(supplier) 목록 조회
+
+-- 내 풀이
+-- 안 됨.
+SELECT Products.ProductID, OrderDetails.Quantity, Supplier.SupplierName
+FROM Products 
+INNER JOIN  Suppliers 
+ON Products.SupplierID=Suppliers.SupplierID LIMIT 3
+INNER JOIN  OrderDetails 
+ON Products.ProductID=OrderDetails.ProductID LIMIT 3;
+
+-- 강사님 풀이 
+SELECT S.*, SUM(Quantity) AS SumQuantity
+FROM OrderDetails AS OD
+    INNER JOIN Products AS P
+    ON OD.ProductID=P.ProductID
+    INNER JOIN Suppliers AS S
+    ON P.SupplierID=S.SupplierID
+GROUP BY S.SupplierID
+ORDER BY SumQuantity DESC
+LIMIT 3;
+
+
+-- Q. 상품분류(Category)별, 고객지역별(City) 판매량 많은 순 정렬
+
+-- 강사님 풀이
+SELECT CA.CategoryName, C.City, SUM(OD.Quantity) AS SumQuantity
+FROM OrderDetails AS OD
+    INNER JOIN Orders AS O
+    ON O.OrderID=OD.OrderID
+    INNER JOIN Customers AS C
+    ON O.CustomerID = C.CustomerID
+    INNER JOIN Products AS P
+    ON OD.ProductID=P.ProductID
+    INNER JOIN Categories AS CA
+    ON P.CategoryID=CA.CategoryID
+GROUP BY CA.CategoryID, C.City
+ORDER BY SumQuantity DESC;
+
+
+
+-- Q. 고객국가(Country)가 USA이고, 상품별 판매량(Quantity)의 합이 많은순으로 정렬
+
+SELECT P.ProductName, C.Country, SUM(OD.Quantity) AS Sum_Quantity 
+FROM OrderDetails AS OD 
+    INNER JOIN Products AS P 
+    ON OD.ProductID=P.ProductID
+    INNER JOIN Orders AS O 
+    ON OD.OrderID = O.OrderID 
+    INNER JOIN Customers AS C 
+    ON O.CustomerID=C.CustomerID
+WHERE C.COUNTRY="USA"
+GROUP BY OD.ProductID
+ORDER BY Sum_Quantity DESC;
+
+-- 강사님 풀이
+SELECT P.ProductName, SUM(OD.Quantity) AS SumQuantity
+FROM OrderDetails AS OD
+    INNER JOIN Orders AS O
+    ON OD.OrderID = O.OrderID
+    INNER JOIN Customers AS C
+    ON O.CustomerID=C.CustomerID
+    INNER JOIN Products as P
+    ON OD.ProductID=P.ProductID
+WHERE C.Country="USA"
+GROUP BY P.ProductID
+ORDER BY SumQuantity DESC;
+
+
+
+-- CMD :  MYSQL -u JUNHWA -p   ,   여기는 CMD로 함.
+
+ALTER TABLE Grades ADD CONSTRAINT fk_grade_student FOREIGN KEY(StudentID)
+        REFERENCES Students(StudentID);
+
+-- 밑에 이건 안 됨.  ->   Grades 테이블에 GradeID 가 없어서 안 됨.
+-- ALTER TABLE Students ADD CONSTRAINT fk_student_grade FOREIGN KEY() 
+--     REFERENCES Grades.GradeID 
+
+ALTER TABLE Grades MODIFY COLUMN StudentID INT NOT NULL;
+
+
+
+CREATE TABLE Grades (
+    GradeID INT NOT NULL AUTO_INCREMENT,
+    StudentID INT,
+    Math INT,
+    English INT,
+    Science INT,
+    PRIMARY KEY (GradeID)
+);
+
+
+INSERT INTO Grades (StudentID, Math, English, Science)
+    VALUES (1, 90, 80, 50);
+INSERT INTO Grades (StudentID, Math, English, Science)
+    VALUES (2, 69, 76, 65);
+INSERT INTO Grades (StudentID, Math, English, Science)
+    VALUES (3, 98, 87, 95);
+INSERT INTO Grades (StudentID, Math, English, Science)
+    VALUES (4, 87, 67, 79);
+
+DROP TABLE Users;
+
+CREATE TABLE Users (
+    ID INT NOT NULL AUTO_INCREMENT,
+    UserName VARCHAR(32) UNIQUE,
+    Password VARCHAR(64),
+    PRIMARY KEY(ID)
+);
+
+
+CREATE INDEX idx_UserName ON Users(UserName);
+
+INSERT INTO Users(UserName, Password) VALUES ("JunHwa", "1234");
